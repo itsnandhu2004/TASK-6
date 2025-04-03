@@ -1,26 +1,17 @@
-# Use Nginx as the base image
+# Use an Nginx base image
 FROM nginx:alpine
 
-# Set working directory inside the container
+# Set working directory
 WORKDIR /usr/share/nginx/html
 
-# Remove default Nginx content
+# Remove the default Nginx index page
 RUN rm -rf ./*
 
-# Copy HTML files
-COPY ./REST/index.html ./  
-COPY ./REST/about.html ./  
-COPY ./REST/book.html ./  
-COPY ./REST/menu.html ./  
+# Copy HTML, CSS, and JavaScript files to the container
+COPY build/ .
 
-# Copy CSS, JS, Fonts, and Images
-COPY ./REST/css /usr/share/nginx/html/css/
-COPY ./REST/js /usr/share/nginx/html/js/
-COPY ./REST/fonts /usr/share/nginx/html/fonts/
-COPY ./REST/images /usr/share/nginx/html/images/
+# Expose port 80 (default Nginx port)
+EXPOSE 3000
 
-# Expose port 80 for the container
-EXPOSE 80
-
-# Start Nginx server
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
