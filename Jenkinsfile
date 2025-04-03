@@ -2,55 +2,66 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "my-app"
-        K8S_DEPLOYMENT = "my-app-deployment"
-        K8S_SERVICE = "my-app-service"
+        DOCKER_IMAGE = 'nandhini1694/webapp:latest'
+        KUBE_CONFIG = credentials('kubeconfig')
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-username/your-repo.git'
+                git credentialsId: 'github-credentials', url: 'https://github.com/itsnandhu2004/TASK-6.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh '''
-                    eval $(minikube docker-env)
-                    docker build -t ${IMAGE_NAME}:latest .
-                    '''
+                sh 'docker build -t $DOCKER_IMAGE .'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                    sh 'docker push $DOCKER_IMAGE'
                 }
             }
         }
 
-        stage('Deploy to Minikube') {
+        stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    sh '''
-                    kubectl apply -f k8s-deployment.yaml
-                    kubectl apply -f k8s-service.yaml
-                    '''
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    sh 'kubectl apply -f k8s/service.yaml'
                 }
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                script {
-                    sh 'kubectl get pods'
-                    sh 'kubectl get services'
-                }
+                sh 'kubectl get pods'
             }
         }
 
-        stage('Cleanup') {
+        stage('Set Up Monitoring (Prometheus & Grafana)') {
             steps {
-                script {
-                    sh 'docker system prune -f'
-                }
+                sh 'kubectl apply -f monitoring/prometheus.yaml'
+                sh 'kubectl apply -f monitoring/grafana.yaml'
             }
+        }
+
+        stage('Verify Monitoring') {
+            steps {
+                sh 'kubectl get pods -n monitoring'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for errors.'
         }
     }
 }
