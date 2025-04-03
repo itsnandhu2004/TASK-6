@@ -10,14 +10,14 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/itsnandhu2004/TASK-6.git'
+                git branch: 'main', url: 'https://github.com/itsnandhu2004/TASK-6.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_USERNAME}/${IMAGE_NAME}:latest", "-f Dockerfile .")
+                    docker.build("${DOCKER_USERNAME}/${IMAGE_NAME}:latest", "--file Dockerfile .")
                 }
             }
         }
@@ -38,35 +38,6 @@ pipeline {
                 }
             }
         }
+    }  
 
-        stage('Set up Minikube') {
-            steps {
-                script {
-                    echo "Starting Minikube with Docker driver..."
-                    sh """
-                    minikube delete || true
-                    minikube start --driver=docker --memory=4096 --cpus=4 --force
-                    """
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    echo "Applying Kubernetes deployment..."
-                    sh 'kubectl apply -f k8s-deployment.yaml'
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo "Pipeline completed. Cleaning up..."
-            sh "docker logout"
-            sh "minikube stop"
-            sh "minikube delete"
-        }
-    }
 }
